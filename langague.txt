@@ -1,0 +1,42 @@
+nom_pgrm
+    DATA
+        INTEGER: lm|B|A|Cc|j|e|Aa|n|i;
+        VECTOR: S[0,10:INTEGER];
+        STRING: s1|s2|s3;
+        CONST: PI=3.14;
+        VECTOR: T[5,6:CHAR];
+        CHAR: c;
+        FLOAT: X|z;
+        § commentaire 
+    END
+
+    CODE
+        c = '!';
+        T[5] = 'm';
+        s1 = "hello";
+
+        e = 5;
+        
+        §A = X+7.2/z-5;
+        §A = S[9]-12;
+        §READ ("$": @ lm);
+
+        §DISPLAY ("entier $": lm );
+
+        §IF (NOT(T[5]+6.GE.B) .AND. (Aa.DI.B)):
+        §    Cc=2+e;
+        §ELSE:
+        §    A = A/2;
+        §    DISPLAY ("A = $": A);
+        §END
+
+        §FOR (i :2 :n)
+         §   READ ("%": @ X);
+          §  FOR (j: i: n-1)
+           §     j=j+1;
+            §END
+        §END
+
+        § commentaire
+    END
+END
