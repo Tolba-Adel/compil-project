@@ -14,8 +14,8 @@ typedef struct element {
     char name[20];
     char code[20];
     char type[20];
-    float borne_inf;
-    float taille;
+    int borne_inf;
+    int taille;
     float val;
     struct element* next;
 } element;
@@ -197,7 +197,7 @@ void afficher_ts(void) {
 
 
 /* update IDF to IDF_CONST when met with CONST declaration */
-void update_cst(char entite[], float val) {
+void update_cst(char entite[], char val[]) {
     unsigned int indice = fonctionHachage(entite) % TAILLE_HACH_IDF;
     element* curr = tab[indice];
 
@@ -213,14 +213,20 @@ void update_cst(char entite[], float val) {
 
     // Determine the type dynamically
     char type[10];
-    if ((int)val == val) strcpy(type, "INTEGER");
-    else strcpy(type, "FLOAT");
+    if (strchr(val, '.') != NULL) {
+        float cst_float = strtof(val, NULL);
+        curr->val = cst_float;
+        strcpy(type, "FLOAT");
+    } else {
+        int cst_int = atoi(val);
+        curr->val = cst_int;
+        strcpy(type, "INTEGER");
+    }
 
 
     // Change its code to IDF_CONST, update its type and its value
     strcpy(curr->code, "IDF_CONST");
     strcpy(curr->type, type);
-    curr->val = val;
 }
 
 
@@ -244,7 +250,7 @@ int double_declaration (char entite[]){
 
 
 /* insert the according type to the IDF, and taille if a VECTOR */
-void inserer_type_taille(char entite[],char type[],float bi,float t){
+void inserer_type_taille(char entite[],char type[],char bi[],char t[]){
     unsigned int indice = fonctionHachage(entite) % TAILLE_HACH_IDF;
     element* curr = tab[indice];
     
@@ -256,10 +262,13 @@ void inserer_type_taille(char entite[],char type[],float bi,float t){
         return;
     }
 
-
+   
+    int bi_int = atoi(bi);
+    int t_int = atoi(t);
+    curr->borne_inf = bi_int;
+    curr->taille = t_int;
+   
     strcpy(curr->type, type);
-    curr->borne_inf = bi;
-    curr->taille = t;
 }
 
 
@@ -374,7 +383,7 @@ int check_type_string(char entite[]){
 
 
 /* check if index of VECTOR is out of bounds */
-int depassement_taille(char entite[],float index){
+int depassement_taille(char entite[],char index[]){
     unsigned int indice = fonctionHachage(entite) % TAILLE_HACH_IDF;
     element* curr = tab[indice];
 
@@ -386,13 +395,13 @@ int depassement_taille(char entite[],float index){
     }
 
 
-    float borne_inf = (curr->borne_inf);
-    float taille = (curr->taille);
+    int borne_inf = (curr->borne_inf);
+    int taille = (curr->taille);
+    int borne_sup = borne_inf + taille-1;
 
-    float borne_sup = borne_inf + taille-1;
-
+    int index_int = atoi(index);
     
-    if( (borne_inf<=index) && (index<=(borne_sup)) ) return 0; // pas de depassement
+    if( (borne_inf<=index_int) && (index_int<=(borne_sup)) ) return 0; // pas de depassement
     else return 1; // index out of bounds
 }
 
