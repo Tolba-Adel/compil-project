@@ -6,37 +6,43 @@ nom_pgrm
         CONST: PI=3.14;
         VECTOR: T[5,6:CHAR];
         CHAR: c;
-        FLOAT: X|z;
+        FLOAT: X|z|s1;
         § commentaire 
     END
 
     CODE
-        c = '!';
-        T[5] = 'm';
-        s1 = "hello";
+        PI = 3.14159;
+
+        READ("%": @ lm);
+        DISPLAY("CHAR #": c );
+
+        S[0] = '!';
         S[0] = 56;
+        c = '!';
+        s1 = "hello";
+        c = "hello";
+
+        T[5] = 'm';
+        T[11] = 'n';
 
         e = 10/2+4-1;
 
-        §A = X+7.2/z-5;
-        §A = S[9]-12;
-        §READ ("$": @ lm);
+        IF ( (12.GE.1) ):
+            e = 25;
+        ELSE:
+            e = 50;
+        END
 
-        §DISPLAY ("entier $": lm );
 
-        §IF (NOT(T[5]+6.GE.B) .AND. (Aa.DI.B)):
-        §    Cc=2+e;
-        §ELSE:
-        §    A = A/2;
-        §    DISPLAY ("A = $": A);
-        §END
-
-        §FOR (i :2 :n)
-         §   READ ("%": @ X);
-          §  FOR (j: i: n-1)
-           §     j=j+1;
-            §END
-        §END
+        FOR (i :2 :n)
+            X = 10;
+            DISPLAY("float %":  X);
+            FOR (i :2 :n)
+                X = 20;
+            END
+            X = 30;
+        END
+        X = 40;
 
         § commentaire
     END

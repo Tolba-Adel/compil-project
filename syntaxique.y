@@ -7,6 +7,8 @@
     char suavType[20];
 
     int qc=0;
+    int deb_else, fin_if, and_qc, or_qc;
+    char tmp[20];
 
     // function to generate temp variable names
     char* generer_temp() {
@@ -14,6 +16,35 @@
         static int cpt_temp = 0;
         sprintf(temp, "temp%d", cpt_temp++);
         return temp;
+    }
+
+
+    // stack to manage nested loops
+    typedef struct ForLoopContext {
+        int sauv_deb;  // start position of the loop
+        int sauv_bz;   // position of the BZ quad
+    } ForLoopContext;
+
+    #define MAX_LOOP_DEPTH 20
+    ForLoopContext loop_stack[MAX_LOOP_DEPTH];
+    int loop_stack_top = -1;  // stack pointer
+    int loop_sauv_deb = 0;
+
+    void push_loop_context(int deb, int bz) {
+        if (loop_stack_top < MAX_LOOP_DEPTH - 1) {
+            loop_stack_top++;
+            loop_stack[loop_stack_top].sauv_deb = deb;
+            loop_stack[loop_stack_top].sauv_bz = bz;
+        } 
+    }
+
+    ForLoopContext pop_loop_context() {
+        ForLoopContext ctx;
+        if (loop_stack_top >= 0) {
+            ctx = loop_stack[loop_stack_top];
+            loop_stack_top--;
+            return ctx;
+        } 
     }
 %}
 
@@ -38,6 +69,8 @@
 %type <str_val> exp 
 %type <str_val> list_exp
 %type <str_val> division
+%type <str_val> condition comparaison
+
 
 %%
 S: idf mc_data declaration mc_end mc_code list_inst mc_end mc_end
@@ -79,7 +112,7 @@ declaration_tab: mc_vector ':' idf '[' cst ',' cst ':' type ']' ';' {
                         inserer_type_taille($3,suavType,bi_str,t_int);
 
                         // generate bounds quadruplet
-                        generate_bounds($5, $7);
+                        generate_bounds(bi_str, t_int);
                         quadr("ADEC", $3, "vide", "vide");
                     } 
                     else printf("ERREUR SEMANTIQUE: double declaration de %s, a la ligne %d, et la colonne %d\n", $3, nb_ligne, nb_colonne); 
@@ -110,23 +143,23 @@ inst_aff: idf '=' list_exp ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: %s est une constante a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
             else quadr(":=", $3, "vide", $1);
         }
         | idf '[' cst ']' '=' list_exp ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: %s est une constante a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
             else {
                 char index_str[20];
                 sprintf(index_str, "%d", (int) $3);
                 if (depassement_taille($1,index_str) == 1)
                     printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$1,nb_ligne, nb_colonne);
                 else {
-                    char table_with_index[50];
-                    sprintf(table_with_index, "%s[%s]", $1, index_str);
-                    quadr(":=", $6, "vide", table_with_index);
+                    char arr_elem[50];
+                    sprintf(arr_elem, "%s[%s]", $1, index_str);
+                    quadr(":=", $6, "vide", arr_elem);
                 } 
             } 
         }
@@ -134,7 +167,7 @@ inst_aff: idf '=' list_exp ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: %s est une constante a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
             else if (check_type_char($1) == 0)
                 printf("ERREUR SEMANTIQUE: %s doit etre de type CHAR, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else quadr(":=", $3, "vide", $1);                
@@ -143,24 +176,24 @@ inst_aff: idf '=' list_exp ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: %s est une constante a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
             else if (check_type_char($1) == 0)
                 printf("ERREUR SEMANTIQUE: %s doit etre de type CHAR, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else {
                 char index_str[20];
                 sprintf(index_str, "%d", (int) $3);
-                char table_with_index[50];
-                sprintf(table_with_index, "%s[%s]", $1, index_str);
+                char arr_elem[50];
+                sprintf(arr_elem, "%s[%s]", $1, index_str);
                 if (depassement_taille($1,index_str) == 1)
                     printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$1,nb_ligne, nb_colonne);
-                else quadr(":=", $6, "vide", table_with_index);    
+                else quadr(":=", $6, "vide", arr_elem);    
             } 
         }
         | idf '=' chaine ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: %s est une constante a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
             else if (check_type_string($1) == 0)
                 printf("ERREUR SEMANTIQUE: %s doit etre de type STRING, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else quadr(":=", $3, "vide", $1);
@@ -175,13 +208,17 @@ var: idf {
     | idf '[' cst ']' {
         if(double_declaration($1) == 1) 
             printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
-        else if (depassement_taille($1,$3) == 1)
-                printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$1,nb_ligne, nb_colonne);
         else {
-            char arr_elem[50];
-            sprintf(arr_elem, "%s[%d]", $1, $3);
-            strcpy($$, arr_elem);
-        }
+            char index_str[20];
+            sprintf(index_str, "%d", (int) $3);
+            if (depassement_taille($1,index_str) == 1)
+                printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$1,nb_ligne, nb_colonne);
+            else {
+                char arr_elem[50];
+                sprintf(arr_elem, "%s[%s]", $1, index_str);
+                strcpy($$, arr_elem);
+            }
+        } 
     }
     | cst {
         char cst_str[20];
@@ -249,6 +286,23 @@ division: exp '/' idf {
                 strcpy($$, temp);
             }
         } 
+        | exp '/' idf '[' cst ']' {
+            if(double_declaration($3) == 1) 
+                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $3, nb_ligne, nb_colonne);
+            else {
+                char index_str[20];
+                sprintf(index_str, "%d", (int) $5);
+                char arr_elem[50];
+                sprintf(arr_elem, "%s[%s]", $3, index_str);
+                if (depassement_taille($3,index_str) == 1)
+                    printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$3,nb_ligne, nb_colonne);
+                else {
+                    char* temp = generer_temp();
+                    quadr("/", $1, arr_elem, temp);
+                    strcpy($$, temp);
+                }
+            } 
+        }
         | exp '/' cst {
         if ($3==0) 
             printf("ERREUR SEMANTIQUE: Division par zero a la ligne %d\n",nb_ligne);  
@@ -289,21 +343,84 @@ inst_display: mc_display '(' chaine ':' idf ')' ';' {
 ;
 
 
-inst_if: mc_if '(' condition ')' ':' list_inst mc_else ':' list_inst mc_end
+inst_if: deb_inst_if mc_else ':' list_inst mc_end { 
+            sprintf(tmp, "%d", qc);
+            ajour_quad(fin_if,1,tmp);
+        }
 ;
 
-condition: list_exp comparaison list_exp
-        | condition mc_and condition
-        | condition mc_or condition
-        | mc_not condition
-        | '(' condition ')'
+deb_inst_if: debut_if list_inst { 
+            fin_if = qc;
+            quadr("BR", "", "vide", "vide");
+            sprintf(tmp, "%d", qc);
+            ajour_quad(deb_else,1,tmp);
+            ajour_quad(and_qc,1,tmp);
+            ajour_quad(or_qc,1,tmp);
+        }
 ;
 
-comparaison: mc_g | mc_ge | mc_l | mc_le | mc_eq | mc_di
+debut_if: mc_if '(' condition ')' ':'
+;
+
+condition: list_exp comparaison list_exp {
+            char* temp = generer_temp();
+            deb_else = qc;
+            quadr($2, "", $1, $3);
+            strcpy($$, temp);
+        }
+        | condition mc_and condition {
+            char* temp = generer_temp();
+            quadr("AND", $1, $3, temp);
+            and_qc = qc;
+            quadr("BZ", "", $1, "vide");  // 1er condition fausse on saute a ELSE
+            strcpy($$, temp);
+        }
+        | condition mc_or condition {
+            char* temp = generer_temp();
+            quadr("OR", $1, $3, temp);
+            or_qc = qc;
+            quadr("BZ", "", $3, "vide");  // 2 conditions fausses on saute a ELSE
+            strcpy($$, temp);
+        }
+        | mc_not condition {
+            char* temp = generer_temp();
+            quadr("NOT", $2, "vide", temp);
+            strcpy($$, temp);
+        }
+        | '(' condition ')' { strcpy($$, $2); }
+;
+
+comparaison: mc_g  { strcpy($$, "BLE"); }
+        | mc_ge { strcpy($$, "BL"); }
+        | mc_l  { strcpy($$, "BGE"); }
+        | mc_le { strcpy($$, "BG"); }
+        | mc_eq { strcpy($$, "BNE"); }
+        | mc_di { strcpy($$, "BE"); }
 ;
 
 
-inst_for: mc_for '(' idf ':' list_exp ':' list_exp ')' list_inst mc_end
+inst_for: deb_inst_for list_inst mc_end {
+    ForLoopContext ctx = pop_loop_context();
+    char sauv_deb_str[20];
+    sprintf(sauv_deb_str, "%d", ctx.sauv_deb);
+    quadr("BR", sauv_deb_str, "vide", "vide");
+    sprintf(tmp, "%d", qc);
+    ajour_quad(ctx.sauv_bz, 1, tmp);
+}
+;
+
+deb_inst_for: debut_for '(' idf ':' list_exp ':' list_exp ')' {
+    char* temp = generer_temp();
+    int current_bz = qc;
+    quadr("BZ", "", temp, "vide");
+    push_loop_context(loop_sauv_deb, current_bz);
+}
+;
+
+debut_for: mc_for {
+    int current_deb = qc;
+    loop_sauv_deb = current_deb;  // using a global variable to pass to deb_inst_for
+}
 ;
 
 

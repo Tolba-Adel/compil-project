@@ -57,15 +57,16 @@ void afficher_qdr() {
 
 
 /* generate BOUNDS quadruplet for array declaration */
-void generate_bounds(float start, float size) {
-    int start_int = (int)start;
-    int end_int = (int)(start + size-1);
+void generate_bounds(char start[], char size[]) {
+    int start_int = atoi(start);
+    int size_int = atoi(size);
 
-    char start_str[20], end_str[20];
-    sprintf(start_str, "%d", start_int);
+    int end_int = start_int + size_int-1;
+
+    char end_str[20];
     sprintf(end_str, "%d", end_int);
     
-    quadr("BOUNDS", start_str, end_str, "vide");
+    quadr("BOUNDS", start, end_str, "vide");
 }
 
 
