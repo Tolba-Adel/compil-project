@@ -89,6 +89,6 @@ NOT {rechercher(yytext,"Separateur","",0,2); nb_colonne = nb_colonne + yyleng; r
 
 \n {nb_colonne=1; nb_ligne++;}
 
-§.* {nb_colonne=1; nb_ligne++;}
+§.*\n {nb_colonne=1; nb_ligne++;}
 
 . printf("ERREUR LEXICALE a la ligne %d, et la colonne %d\n",nb_ligne,nb_colonne);

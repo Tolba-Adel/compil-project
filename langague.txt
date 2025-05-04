@@ -13,6 +13,9 @@ nom_pgrm
     CODE
         PI = 3.14159;
 
+        lm = 5+s1;
+        e = 10/2;
+
         READ("%": @ lm);
         DISPLAY("CHAR #": c );
 
@@ -24,8 +27,6 @@ nom_pgrm
 
         T[5] = 'm';
         T[11] = 'n';
-
-        e = 10/2+4-1;
 
         IF ( (12.GE.1) ):
             e = 25;

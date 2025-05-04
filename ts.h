@@ -407,6 +407,7 @@ int depassement_taille(char entite[],char index[]){
 
 
 /* get the IDF's type from the symbol table */
+// unused
 char* get_type(char entite[]) {
     unsigned int indice = fonctionHachage(entite) % TAILLE_HACH_IDF;
     element* curr = tab[indice];
@@ -420,4 +421,114 @@ char* get_type(char entite[]) {
 
 
     return curr->type;  // Return the stored type
+}
+
+
+
+
+
+
+//!******************************************************************/
+/* Get the type ID (1=INT, 2=FLOAT, 3=CHAR, 4=STRING) for a given entity */
+int get_type_id(char entite[]) {
+    // Handle constants first (numeric literals)
+    if (entite[0] >= '0' && entite[0] <= '9' || 
+        (entite[0] == '-' && entite[1] >= '0' && entite[1] <= '9')) {
+        // Check if it contains a decimal point
+        if (strchr(entite, '.') != NULL)
+            return 2; // FLOAT
+        else
+            return 1; // INTEGER
+    }
+    
+    // Handle array elements
+    char base_name[50];
+    if (strchr(entite, '[') != NULL) {
+        int i = 0;
+        while (entite[i] != '[' && i < strlen(entite)) {
+            base_name[i] = entite[i];
+            i++;
+        }
+        base_name[i] = '\0';
+        entite = base_name;
+    }
+
+    // Lookup in symbol table
+    unsigned int indice = fonctionHachage(entite) % TAILLE_HACH_IDF;
+    element* curr = tab[indice];
+    
+    while (curr != NULL && strcmp(curr->name, entite) != 0) 
+        curr = curr->next;
+
+    if (curr == NULL) {
+        printf("ERREUR: Identificateur %s non trouvé dans la table des symboles!\n", entite);
+        return 0; // Unknown type
+    }
+
+    // Map type strings to type IDs
+    if (strcmp(curr->type, "INTEGER") == 0) return 1;
+    if (strcmp(curr->type, "FLOAT") == 0) return 2;
+    if (strcmp(curr->type, "CHAR") == 0) return 3;
+    if (strcmp(curr->type, "STRING") == 0) return 4;
+    
+    return 0; // Unknown type
+}
+
+/* Check if two types are compatible for arithmetic operations */
+int are_compatible_for_arithmetic(char op1[], char op2[]) {
+    int type1 = get_type_id(op1);
+    int type2 = get_type_id(op2);
+    
+    // Only numeric types (INT and FLOAT) are compatible for arithmetic
+    if ((type1 == 1 || type1 == 2) && (type2 == 1 || type2 == 2))
+        return 1; // Compatible
+    return 0; // Incompatible
+}
+
+/* Determine the resulting type of an arithmetic operation */
+int resulting_type(char op1[], char op2[]) {
+    int type1 = get_type_id(op1);
+    int type2 = get_type_id(op2);
+    
+    // If either operand is FLOAT, result is FLOAT
+    if (type1 == 2 || type2 == 2)
+        return 2; // FLOAT
+    else
+        return 1; // INTEGER
+}
+
+/* Check if target can accept the source type in assignment */
+int check_assignment_compatibility(char target[], char source[]) {
+    int target_type = get_type_id(target);
+    int source_type = get_type_id(source);
+    
+    // Same types are always compatible
+    if (target_type == source_type)
+        return 1;
+    
+    // INT can accept INT, but not FLOAT
+    if (target_type == 1 && source_type == 2)
+        return 0;
+    
+    // FLOAT can accept INT or FLOAT
+    if (target_type == 2 && (source_type == 1 || source_type == 2))
+        return 1;
+    
+    // CHAR and STRING are only compatible with their own types
+    if ((target_type == 3 && source_type != 3) || 
+        (target_type == 4 && source_type != 4))
+        return 0;
+    
+    return 0; // Default: incompatible
+}
+
+/* Get string representation of a type ID */
+char* type_id_to_string(int type_id) {
+    switch(type_id) {
+        case 1: return "INTEGER";
+        case 2: return "FLOAT";
+        case 3: return "CHAR";
+        case 4: return "STRING";
+        default: return "UNKNOWN";
+    }
 }

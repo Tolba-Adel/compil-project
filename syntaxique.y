@@ -132,21 +132,55 @@ declaration_const: mc_const ':' idf '=' cst ';' {
 list_inst: list_inst inst | inst
 ;
 
-inst: inst_aff 
+inst: idf_assignment 
+    | array_assignment
     | inst_read
     | inst_display
     | inst_if
     | inst_for
 ;
 
-inst_aff: idf '=' list_exp ';' {
+
+idf_assignment: idf '=' list_exp ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
                 printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+            else {
+                // check type compatibility for assignment (except for special types)
+                if (!check_assignment_compatibility($1, $3)) {
+                    int target_type = get_type_id($1);
+                    int source_type = get_type_id($3);
+                    printf("ERREUR SEMANTIQUE: Incompatibilite de type dans l'affectation - %s(%s) = (%s) a la ligne %d, et la colonne %d\n", 
+                           $1, type_id_to_string(target_type), 
+                           type_id_to_string(source_type), 
+                           nb_ligne, nb_colonne);
+                }
+                quadr(":=", $3, "vide", $1);
+            }
+        }
+        | idf '=' caractere ';' {
+            if(double_declaration($1) == 1) 
+                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
+            else if (is_const($1) == 1)
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+            else if (check_type_char($1) == 0)
+                printf("ERREUR SEMANTIQUE: %s doit etre de type CHAR, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+            else quadr(":=", $3, "vide", $1);                
+        }
+        | idf '=' chaine ';' {
+            if(double_declaration($1) == 1) 
+                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
+            else if (is_const($1) == 1)
+                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
+            else if (check_type_string($1) == 0)
+                printf("ERREUR SEMANTIQUE: %s doit etre de type STRING, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else quadr(":=", $3, "vide", $1);
         }
-        | idf '[' cst ']' '=' list_exp ';' {
+;
+
+
+array_assignment: idf '[' cst ']' '=' list_exp ';' {
             if(double_declaration($1) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
             else if (is_const($1) == 1)
@@ -159,18 +193,19 @@ inst_aff: idf '=' list_exp ';' {
                 else {
                     char arr_elem[50];
                     sprintf(arr_elem, "%s[%s]", $1, index_str);
+                    
+                    // check type compatibility for array assignment
+                    if (!check_assignment_compatibility(arr_elem, $6)) {
+                        int target_type = get_type_id(arr_elem);
+                        int source_type = get_type_id($6);
+                        printf("ERREUR SEMANTIQUE: Incompatibilite de type dans l'affectation - %s(%s) = (%s) a la ligne %d, et la colonne %d\n", 
+                               arr_elem, type_id_to_string(target_type), 
+                               type_id_to_string(source_type), 
+                               nb_ligne, nb_colonne);
+                    }
                     quadr(":=", $6, "vide", arr_elem);
                 } 
             } 
-        }
-        | idf '=' caractere ';' {
-            if(double_declaration($1) == 1) 
-                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
-            else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
-            else if (check_type_char($1) == 0)
-                printf("ERREUR SEMANTIQUE: %s doit etre de type CHAR, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
-            else quadr(":=", $3, "vide", $1);                
         }
         | idf '[' cst ']' '=' caractere ';' {
             if(double_declaration($1) == 1) 
@@ -188,15 +223,6 @@ inst_aff: idf '=' list_exp ';' {
                     printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$1,nb_ligne, nb_colonne);
                 else quadr(":=", $6, "vide", arr_elem);    
             } 
-        }
-        | idf '=' chaine ';' {
-            if(double_declaration($1) == 1) 
-                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
-            else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
-            else if (check_type_string($1) == 0)
-                printf("ERREUR SEMANTIQUE: %s doit etre de type STRING, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
-            else quadr(":=", $3, "vide", $1);
         }
 ;
 
@@ -237,38 +263,95 @@ list_exp: list_exp exp {
 ;
 
 exp: exp '+' var {
+        // check type compatibility for addition
+        if (!are_compatible_for_arithmetic($1, $3)) {
+            int type1 = get_type_id($1);
+            int type2 = get_type_id($3);
+            printf("ERREUR SEMANTIQUE: Incompatibilite de type dans l'addition - %s(%s) + %s(%s) a la ligne %d, et la colonne %d\n", 
+                   $1, type_id_to_string(type1), 
+                   $3, type_id_to_string(type2), 
+                   nb_ligne, nb_colonne);
+        }
+        
         char* temp = generer_temp();
-
-        int val1 = atoi($1);
-        int val2 = atoi($3);
-        int result = val1 + val2;
-
-        if (result == (int)result) sprintf(temp, "%d", (int)result);
-        else sprintf(temp, "%.2f", result);
+        
+        // preserve the proper result type
+        if (resulting_type($1, $3) == 2) {
+            // float result
+            float val1 = atof($1);
+            float val2 = atof($3);
+            float result = val1 + val2;
+            sprintf(temp, "%.2f", result);
+        } else {
+            // integer result
+            int val1 = atoi($1);
+            int val2 = atoi($3);
+            int result = val1 + val2;
+            sprintf(temp, "%d", result);
+        }
+        
         quadr("+", $1, $3, temp);
         strcpy($$, temp);
     }
     | exp '-' var {
+        // check type compatibility for subtraction
+        if (!are_compatible_for_arithmetic($1, $3)) {
+            int type1 = get_type_id($1);
+            int type2 = get_type_id($3);
+            printf("ERREUR SEMANTIQUE: Incompatibilite de type dans la soustraction - %s(%s) - %s(%s) a la ligne %d, et la colonne %d\n", 
+                   $1, type_id_to_string(type1), 
+                   $3, type_id_to_string(type2), 
+                   nb_ligne, nb_colonne);
+        }
+        
         char* temp = generer_temp();
-
-        int val1 = atoi($1);
-        int val2 = atoi($3);
-        int result = val1 - val2;
-
-        if (result == (int)result) sprintf(temp, "%d", (int)result);
-        else sprintf(temp, "%.2f", result);
+        
+        // preserve the proper result type
+        if (resulting_type($1, $3) == 2) {
+            // float result
+            float val1 = atof($1);
+            float val2 = atof($3);
+            float result = val1 - val2;
+            sprintf(temp, "%.2f", result);
+        } else {
+            // integer result
+            int val1 = atoi($1);
+            int val2 = atoi($3);
+            int result = val1 - val2;
+            sprintf(temp, "%d", result);
+        }
+        
         quadr("-", $1, $3, temp);
         strcpy($$, temp);
     }
     | exp '*' var {
+        // check type compatibility for multiplication
+        if (!are_compatible_for_arithmetic($1, $3)) {
+            int type1 = get_type_id($1);
+            int type2 = get_type_id($3);
+            printf("ERREUR SEMANTIQUE: Incompatibilite de type dans la multiplication - %s(%s) * %s(%s) a la ligne %d, et la colonne %d\n", 
+                   $1, type_id_to_string(type1), 
+                   $3, type_id_to_string(type2), 
+                   nb_ligne, nb_colonne);
+        }
+        
         char* temp = generer_temp();
-
-        int val1 = atoi($1);
-        int val2 = atoi($3);
-        int result = val1 * val2;
-
-        if (result == (int)result) sprintf(temp, "%d", (int)result);
-        else sprintf(temp, "%.2f", result);
+        
+        // preserve the proper result type
+        if (resulting_type($1, $3) == 2) {
+            // float result
+            float val1 = atof($1);
+            float val2 = atof($3);
+            float result = val1 * val2;
+            sprintf(temp, "%.2f", result);
+        } else {
+            // integer result
+            int val1 = atoi($1);
+            int val2 = atoi($3);
+            int result = val1 * val2;
+            sprintf(temp, "%d", result);
+        }
+        
         quadr("*", $1, $3, temp);
         strcpy($$, temp);
     }
@@ -281,7 +364,23 @@ division: exp '/' idf {
             if(double_declaration($3) == 1) 
                 printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $3, nb_ligne, nb_colonne);
             else {
+                // check type compatibility for division
+                if (!are_compatible_for_arithmetic($1, $3)) {
+                    int type1 = get_type_id($1);
+                    int type2 = get_type_id($3);
+                    printf("ERREUR SEMANTIQUE: Incompatibilite de type dans la division - %s(%s) / %s(%s) a la ligne %d, et la colonne %d\n", 
+                           $1, type_id_to_string(type1), 
+                           $3, type_id_to_string(type2), 
+                           nb_ligne, nb_colonne);
+                }
+                
                 char* temp = generer_temp();
+                
+                float val1 = atof($1);
+                float val2 = atof($3);
+                float result = val1 / val2;
+                sprintf(temp, "%.2f", result);
+                
                 quadr("/", $1, $3, temp);
                 strcpy($$, temp);
             }
@@ -295,33 +394,57 @@ division: exp '/' idf {
                 char arr_elem[50];
                 sprintf(arr_elem, "%s[%s]", $3, index_str);
                 if (depassement_taille($3,index_str) == 1)
-                    printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s , a la ligne %d, t la colonne %d\n",$3,nb_ligne, nb_colonne);
+                    printf("ERREUR SEMANTIQUE: Depassement de taille pour le tableau %s, a la ligne %d, la colonne %d\n",$3,nb_ligne, nb_colonne);
                 else {
+                    if (!are_compatible_for_arithmetic($1, arr_elem)) {
+                        int type1 = get_type_id($1);
+                        int type2 = get_type_id(arr_elem);
+                        printf("ERREUR SEMANTIQUE: Incompatibilite de type dans la division - %s(%s) / %s(%s) a la ligne %d, et la colonne %d\n", 
+                               $1, type_id_to_string(type1), 
+                               arr_elem, type_id_to_string(type2), 
+                               nb_ligne, nb_colonne);
+                    }
+                    
                     char* temp = generer_temp();
+                    
+                    float val1 = atof($1);
+                    float val2 = atof(arr_elem);
+                    float result = val1 / val2;
+                    sprintf(temp, "%.2f", result);
+                    
                     quadr("/", $1, arr_elem, temp);
                     strcpy($$, temp);
                 }
             } 
         }
         | exp '/' cst {
-        if ($3==0) 
-            printf("ERREUR SEMANTIQUE: Division par zero a la ligne %d\n",nb_ligne);  
-        else {
-            char cst_str[20];
-            if ((int) $3 == $3) sprintf(cst_str, "%d", (int) $3);
-            else sprintf(cst_str, "%f", $3);
+            if ($3==0) 
+                printf("ERREUR SEMANTIQUE: Division par zero a la ligne %d\n",nb_ligne);  
+            else {
+                char cst_str[20];
+                if ((int) $3 == $3) sprintf(cst_str, "%d", (int) $3);
+                else sprintf(cst_str, "%f", $3);
+                
+                if (!are_compatible_for_arithmetic($1, cst_str)) {
+                    int type1 = get_type_id($1);
+                    int type2 = get_type_id(cst_str);
+                    printf("ERREUR SEMANTIQUE: Incompatibilite de type dans la division - %s(%s) / %s(%s) a la ligne %d, et la colonne %d\n", 
+                           $1, type_id_to_string(type1), 
+                           cst_str, type_id_to_string(type2), 
+                           nb_ligne, nb_colonne);
+                }
+                
+                char* temp = generer_temp();
+                
+                int val1 = atoi($1);
+                int result = val1 / $3;
+                if (result == (int)result) sprintf(temp, "%d", (int)result);
+                else sprintf(temp, "%.2f", result);
 
-            char* temp = generer_temp();
-
-            int val1 = atoi($1);
-            int result = val1 / $3;
-
-            if (result == (int)result) sprintf(temp, "%d", (int)result);
-            else sprintf(temp, "%.2f", result);
-            quadr("/", $1, cst_str, temp);
-            strcpy($$, temp);
+                quadr("/", $1, cst_str, temp);
+                strcpy($$, temp);
+            }
         }
-}
 ;
 
 
