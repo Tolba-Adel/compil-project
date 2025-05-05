@@ -532,3 +532,41 @@ char* type_id_to_string(int type_id) {
         default: return "UNKNOWN";
     }
 }
+
+
+
+/* Update the value of an identifier in the symbol table */
+void update_value(char entite[], char value[]) {
+    unsigned int indice = fonctionHachage(entite) % TAILLE_HACH_IDF;
+    element* curr = tab[indice];
+
+    // Search for the identifier in the linked list
+    while (curr != NULL && strcmp(curr->name, entite) != 0) {
+        curr = curr->next;
+    }
+
+    // If identifier not found, print error
+    if (curr == NULL) {
+        printf("ERREUR: Identificateur %s non trouvé dans la table des symboles!\n", entite);
+        return;
+    }
+
+    // Check if the variable is a constant
+    if (strcmp(curr->code, "IDF_CONST") == 0) {
+        printf("ERREUR SEMANTIQUE: modification de la constante %s \n",entite);
+        return;
+    }
+
+    // Convert value to float (since val is float in element struct)
+    float val_float;
+    if (strchr(value, '.') != NULL) {
+        // Value is a float
+        val_float = strtof(value, NULL);
+    } else {
+        // Value is an integer
+        val_float = (float)atoi(value);
+    }
+
+    // Update the value
+    curr->val = val_float;
+}

@@ -142,41 +142,48 @@ inst: idf_assignment
 
 
 idf_assignment: idf '=' list_exp ';' {
-            if(double_declaration($1) == 1) 
-                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
-            else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
-            else {
-                // check type compatibility for assignment (except for special types)
-                if (!check_assignment_compatibility($1, $3)) {
-                    int target_type = get_type_id($1);
-                    int source_type = get_type_id($3);
-                    printf("ERREUR SEMANTIQUE: Incompatibilite de type dans l'affectation - %s(%s) = (%s) a la ligne %d, et la colonne %d\n", 
-                           $1, type_id_to_string(target_type), 
-                           type_id_to_string(source_type), 
-                           nb_ligne, nb_colonne);
-                }
-                quadr(":=", $3, "vide", $1);
-            }
+    if (double_declaration($1) == 1) {
+        printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else if (is_const($1) == 1) {
+        printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else {
+        // check type compatibility for assignment
+        if (!check_assignment_compatibility($1, $3)) {
+            int target_type = get_type_id($1);
+            int source_type = get_type_id($3);
+            printf("ERREUR SEMANTIQUE: Incompatibilite de type dans l'affectation - %s(%s) = (%s) a la ligne %d, et la colonne %d\n",
+                   $1, type_id_to_string(target_type),
+                   type_id_to_string(source_type),
+                   nb_ligne, nb_colonne);
+        } else {
+            // update the symbol table with the new value
+            update_value($1, $3);
+            quadr(":=", $3, "vide", $1);
         }
-        | idf '=' caractere ';' {
-            if(double_declaration($1) == 1) 
-                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
-            else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
-            else if (check_type_char($1) == 0)
-                printf("ERREUR SEMANTIQUE: %s doit etre de type CHAR, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
-            else quadr(":=", $3, "vide", $1);                
-        }
-        | idf '=' chaine ';' {
-            if(double_declaration($1) == 1) 
-                printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne%d\n", $1, nb_ligne, nb_colonne);
-            else if (is_const($1) == 1)
-                printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n",$1,nb_ligne, nb_colonne);
-            else if (check_type_string($1) == 0)
-                printf("ERREUR SEMANTIQUE: %s doit etre de type STRING, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
-            else quadr(":=", $3, "vide", $1);
-        }
+    }
+}
+| idf '=' caractere ';' {
+    if (double_declaration($1) == 1) {
+        printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else if (is_const($1) == 1) {
+        printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else if (check_type_char($1) == 0) {
+        printf("ERREUR SEMANTIQUE: %s doit etre de type CHAR, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else {
+        quadr(":=", $3, "vide", $1);
+    }
+}
+| idf '=' chaine ';' {
+    if (double_declaration($1) == 1) {
+        printf("ERREUR SEMANTIQUE: %s non declare, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else if (is_const($1) == 1) {
+        printf("ERREUR SEMANTIQUE: modification de la constane %s a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else if (check_type_string($1) == 0) {
+        printf("ERREUR SEMANTIQUE: %s doit etre de type STRING, a la ligne %d, et la colonne %d\n", $1, nb_ligne, nb_colonne);
+    } else {
+        quadr(":=", $3, "vide", $1);
+    }
+}
 ;
 
 
