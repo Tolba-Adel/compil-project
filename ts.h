@@ -547,7 +547,7 @@ void update_value(char entite[], char value[]) {
 
     // If identifier not found, print error
     if (curr == NULL) {
-        printf("ERREUR: Identificateur %s non trouvé dans la table des symboles!\n", entite);
+        printf("ERREUR: Identificateur %s non trouve dans la table des symboles!\n", entite);
         return;
     }
 

@@ -561,6 +561,9 @@ main(){
 
     afficher_ts();
     afficher_qdr();
+
+    optimize_quads();
+    afficher_qdr();
 }
 
 yywrap()

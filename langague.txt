@@ -1,6 +1,6 @@
 nom_pgrm
     DATA
-        INTEGER: lm|B|A|Cc|j|e|Aa|n|i;
+        INTEGER: lm|B|A|Cc|E|e|n|i|t1|t2|t3|t4|t5|t6|t7|t8|t9|t10|t11|t12|t13|t14|t15|t16|t17;
         VECTOR: S[0,10:INTEGER];
         STRING: s1|s2|s3;
         CONST: PI=3.14;
@@ -11,41 +11,69 @@ nom_pgrm
     END
 
     CODE
-        PI = 3.14159;
+        § exemple propagation_copie
+        § replace t2 with t1 and remove assignement of t1
+        §t1 = t2;
+        §t3 = 2*t2;
 
-        B = 10/2+5-6;
-        z = 1.5;
-        lm = 5+s1;
-        e = 10/2;
+        § exemple propagation_expr
+        § replace t4 with its expression and remove assignement of t4
+        §t4 = 6+5;
+        §t5 = 5*t4;
 
-        READ("%": @ lm);
-        DISPLAY("CHAR #": c );
+        § exemple elim_expr_com
+        § replace t7 assignement with t7=t6;
+        §t6 = 4*6;
+        §t7 = 4*6;
 
-        S[0] = '!';
-        S[0] = 56;
-        c = '!';
-        s1 = "hello";
-        c = "hello";
+        § exemple algebraic_simplification
+        §t8 = A*3;
+        §t9 = E+5-5;
+        §t10 = 0+5;
+        §t11 = 46-0;
+        §t12 = 100*1;
+        §t13 = 50/1;
 
-        T[5] = 'm';
-        T[11] = 'n';
+        § exemple elim_code_inutile
+        §Cc = t17;
+        §t14 = t15;
+        §t16 = t16+t14;
 
-        IF ( (12.GE.1) ):
-            e = 25;
-        ELSE:
-            e = 50;
-        END
-
-
-        FOR (i :2 :n)
-            X = 10;
-            DISPLAY("float %":  X);
-            FOR (i :2 :n)
-                X = 20;
-            END
-            X = 30;
-        END
-        X = 40;
+        §PI = 3.14159;
+§
+        §B = 10/2+5-6;
+        §z = 1.5;
+        §lm = 5+s1;
+        §e = 10/2;
+§
+        §READ("%": @ lm);
+        §DISPLAY("CHAR #": c );
+§
+        §S[0] = '!';
+        §S[0] = 56;
+        §c = '!';
+        §s1 = "hello";
+        §c = "hello";
+§
+        §T[5] = 'm';
+        §T[11] = 'n';
+§
+        §IF ( (12.GE.1) ):
+        §    e = 25;
+        §ELSE:
+        §    e = 50;
+        §END
+§
+§
+        §FOR (i :2 :n)
+        §    X = 10;
+        §    DISPLAY("float %":  X);
+        §    FOR (i :2 :n)
+        §        X = 20;
+        §    END
+        §    X = 30;
+        §END
+        §X = 40;
 
         § commentaire
     END
